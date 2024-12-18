@@ -1,0 +1,53 @@
+version: '3.7'
+
+services:
+  # Service pour la base de données
+  database:
+    image: postgres:14.1-alpine
+    environment:
+      POSTGRES_DB: mydb
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+    networks:
+      - my-network
+    volumes:
+      - dbdata:/var/lib/postgresql/data
+      - ./backend/sql-scripts:/docker-entrypoint-initdb.d
+
+  # Service Backend
+  backend:
+    build:
+      context: ./backend
+    networks:
+      - my-network
+    depends_on:
+      - database
+
+  # Service API avec Spring Boot
+  api:
+    build:
+      context: ./api
+    ports:
+      - "8080:8080"
+    networks:
+      - my-network
+    depends_on:
+      - database
+
+  # Service HTTPD (Apache) configuré comme Reverse Proxy
+  httpd:
+    build:
+      context: ./httpd
+    ports:
+      - "8081:80"
+    networks:
+      - my-network
+    depends_on:
+      - api
+
+networks:
+  my-network:
+    driver: bridge
+
+volumes:
+  dbdata:
